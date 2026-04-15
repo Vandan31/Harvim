@@ -9,21 +9,21 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 
-from harvim.realnvp import RealNVP
-
+from harvim.realnvp_2 import  create_harvim_realnvp
+IMAGE_SIZE=128
 def run_harvim_on_image(image_path, output_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # 1. Load an image (x_T)
     transform = transforms.Compose([
-        transforms.Resize((64, 64)),
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor()
     ])
     
     # If using dummy image because path doesn't exist
     if not os.path.exists(image_path):
         print(f"Image {image_path} not found. Using a random dummy image.")
-        x_T = torch.rand(1, 3, 64, 64).to(device)
+        x_T = torch.rand(1, 3, IMAGE_SIZE, IMAGE_SIZE).to(device)
     else:
         img = Image.open(image_path).convert("RGB")
         x_T = transform(img).unsqueeze(0).to(device)
@@ -31,10 +31,10 @@ def run_harvim_on_image(image_path, output_dir):
     # 2. Setup Watermark Generator
     condition_dim = 12
     latent_dim = 16
-    cvae = WatermarkCVAE(condition_dim=condition_dim, latent_dim=latent_dim, image_size=(64, 64)).to(device)
+    cvae = WatermarkCVAE(condition_dim=condition_dim, latent_dim=latent_dim, image_size=(IMAGE_SIZE, IMAGE_SIZE)).to(device)
     
-    if os.path.exists("checkpoints/watermark_cvae.pth"):
-        cvae.load_state_dict(torch.load("checkpoints/watermark_cvae.pth", map_location=device))
+    if os.path.exists(f"checkpoints/watermark_cvae_{IMAGE_SIZE}.pth"):
+        cvae.load_state_dict(torch.load(f"checkpoints/watermark_cvae_{IMAGE_SIZE}.pth", map_location=device))
     else:
         print("CVAE weights not found. Using untrained CVAE.")
     
@@ -49,7 +49,8 @@ def run_harvim_on_image(image_path, output_dir):
     
     # 3. Setup Prior
     print("Initializing Real-NVP prior...")
-    prior = RealNVP(num_channels=3, num_layers=4).to(device)
+    # prior = RealNVP().to(device)
+    prior = create_harvim_realnvp(image_size=IMAGE_SIZE if "IMAGE_SIZE" in globals() else 64).to(device)
     
     # 4. Initialize HARVIM (Table 2 config)
     harvim_pipeline = HARVIM(
@@ -66,8 +67,8 @@ def run_harvim_on_image(image_path, output_dir):
     # T_steps corresponds to the number of metadata/lambda updates
     optimal_watermark = harvim_pipeline.run(
         x_T=x_T,
-        target_lambda=1.0,
-        T_steps=50, # Reduced from 100 for faster demonstration
+        target_lambda=0.5,
+        T_steps=100, # Reduced from 100 for faster demonstration
         K_unroll=1, # Meta step K=1 as per Table 2
         lr=0.05
     )
@@ -80,8 +81,8 @@ def run_harvim_on_image(image_path, output_dir):
     # Ensure watermark is scaled to target image channels if it's 1 channel
     if optimal_watermark.shape[1] == 1 and x_T.shape[1] == 3:
         A_m = A_m.repeat(1, 3, 1, 1)
-
-    watermarked_image = (1 - A_m) * x_T + A_m * 1.0 # White watermark for simplicity
+    print(A_m.min(), A_m.max())
+    watermarked_image = (A_m) * x_T + optimal_watermark# White watermark for simplicity
     watermarked_image = torch.clamp(watermarked_image, 0, 1)
     
     os.makedirs(output_dir, exist_ok=True)

@@ -54,4 +54,4 @@ def evaluate_metrics(orig_path, recon_path):
 if __name__ == "__main__":
     # For demonstration, compare the watermarked image to original, 
     # to simulate a failed "blind" removal.
-    evaluate_metrics("outputs/original_image.png", "outputs/watermarked_output.png")
+    evaluate_metrics("data/original_image.png", "data/watermarked_output.png")

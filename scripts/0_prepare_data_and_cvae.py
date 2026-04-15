@@ -9,9 +9,9 @@ from tqdm import tqdm
 import random
 
 from harvim.watermark_generator import WatermarkCVAE
-
+IMAGE_SIZE = 256
 class PaddedMNIST(Dataset):
-    def __init__(self, mnist_dataset, image_size=(64, 64)):
+    def __init__(self, mnist_dataset, image_size=(IMAGE_SIZE, IMAGE_SIZE)):
         self.mnist = mnist_dataset
         self.image_size = image_size
 
@@ -20,7 +20,7 @@ class PaddedMNIST(Dataset):
 
     def __getitem__(self, idx):
         img, label = self.mnist[idx]
-        # MNIST is 28x28, we need to pad it to image_size (e.g., 64x64)
+        # MNIST is 28x28, we need to pad it to image_size (e.g., IMAGE_SIZExIMAGE_SIZE)
         # Randomly choose padding left and bottom
         max_pad_h = self.image_size[0] - img.shape[1]
         max_pad_w = self.image_size[1] - img.shape[2]
@@ -53,8 +53,8 @@ def train_cvae():
         transforms.ToTensor(),
     ])
     mnist_train = datasets.MNIST('data', train=True, download=True, transform=transform)
-    padded_dataset = PaddedMNIST(mnist_train, image_size=(64, 64))
-    dataloader = DataLoader(padded_dataset, batch_size=128, shuffle=True)
+    padded_dataset = PaddedMNIST(mnist_train, image_size=(IMAGE_SIZE, IMAGE_SIZE))
+    dataloader = DataLoader(padded_dataset, batch_size=256, shuffle=True)
 
     # 2. Initialize Model
     # Condition dim = 10 (one-hot digit) + 2 (padding ratios)
@@ -62,17 +62,17 @@ def train_cvae():
     latent_dim = 16
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    model = WatermarkCVAE(condition_dim=condition_dim, latent_dim=latent_dim, image_size=(64, 64)).to(device)
+    model = WatermarkCVAE(condition_dim=condition_dim, latent_dim=latent_dim, image_size=(IMAGE_SIZE, IMAGE_SIZE)).to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     
     def loss_function(recon_x, x, mu, logvar):
-        BCE = F.mse_loss(recon_x.view(-1, 64*64), x.view(-1, 64*64), reduction='sum')
+        BCE = F.mse_loss(recon_x.view(-1, IMAGE_SIZE*IMAGE_SIZE), x.view(-1, IMAGE_SIZE*IMAGE_SIZE), reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return BCE + KLD
+        return BCE , KLD
 
     # 3. Train
     print("Training CVAE...")
-    epochs = 10
+    epochs = 100
     model.train()
     for epoch in range(epochs):
         train_loss = 0
@@ -86,15 +86,16 @@ def train_cvae():
             
             optimizer.zero_grad()
             recon_batch, mu, logvar = model(data, c)
-            loss = loss_function(recon_batch, data, mu, logvar)
+            loss_data, loss_kld = loss_function(recon_batch, data, mu, logvar)
+            loss = loss_data + loss_kld
             loss.backward()
             train_loss += loss.item()
             optimizer.step()
             
         print(f"Epoch {epoch+1} loss: {train_loss / len(dataloader.dataset):.4f}")
 
-    torch.save(model.state_dict(), "checkpoints/watermark_cvae.pth")
-    print("CVAE training complete and saved to checkpoints/watermark_cvae.pth")
+    torch.save(model.state_dict(), f"checkpoints/watermark_cvae_{IMAGE_SIZE}.pth")
+    print(f"CVAE training complete and saved to checkpoints/watermark_cvae_{IMAGE_SIZE}.pth")
 
 if __name__ == "__main__":
     train_cvae()

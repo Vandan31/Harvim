@@ -1,6 +1,7 @@
 import torch
 from torch.optim import AdamW
 import torch.autograd as autograd
+from tqdm import tqdm
 from .utils import create_differentiable_mask, watermark_regularizer, compute_psnr
 from .prior import MLEObjective
 
@@ -55,16 +56,12 @@ class HARVIM:
         # Generate initial m_0
         m_t = self.watermark_generator()
         
-        # Initialize observation y_0
-        A_m0 = create_differentiable_mask(m_t.detach(), self.alpha, self.beta)
-        y_0 = A_m0 * x_T + torch.randn_like(x_T) * torch.sqrt(torch.tensor(self.sigma_sq))
-        
         # Find MLE solution x_0 for y_0 with lambda=0 (independent of m0)
         x_tilde = x_T.clone().detach().requires_grad_(True)
         # simplified assumed mle burn-in: 
         # x_tilde could be solved by standard MAP optimization prior to loop
-        
-        for t in range(1, T_steps + 1):
+        pbar = tqdm(range(1, T_steps + 1), desc="Running HARVIM Optimization")
+        for t in pbar:
             optimizer.zero_grad()
             
             # Step 5: Treat y_{t-1}(m_{t-1}) = A_m * x_T + e as function of m_{t-1}
@@ -102,7 +99,11 @@ class HARVIM:
             loss_reg = watermark_regularizer(m_t, self.reg_coeff)
             
             total_loss = loss_similarity + loss_reg
-            
+            pbar.set_postfix({
+                "lambda": lam_t,
+                "PSNR": loss_similarity.item(),
+                "Reg": loss_reg.item()
+            })
             # Backpropagate through the unrolled graph to update watermark generator
             total_loss.backward()
             optimizer.step()

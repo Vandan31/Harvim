@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from harvim.core import HARVIM
 from harvim.watermark_generator import WatermarkCVAE, LearneableWatermark
-from harvim.realnvp import RealNVP
+from harvim.realnvp_2 import RealNVP
 from harvim.utils import create_differentiable_mask
 
 # GLOBAL IMAGE_SIZE CONFIGURATION

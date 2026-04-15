@@ -14,7 +14,7 @@ def create_differentiable_mask(m: torch.Tensor, alpha: float = 0.15, beta: float
     Returns:
         torch.Tensor: The differentiable mask tensor with values squashed between 0 and 1.
     """
-    return torch.sigmoid((m - alpha) / beta)
+    return 1-torch.sigmoid((m - alpha) / beta)
 
 def watermark_regularizer(m: torch.Tensor, coeff: float = 0.001) -> torch.Tensor:
     """

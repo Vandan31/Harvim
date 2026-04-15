@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from harvim.core import HARVIM
 from harvim.watermark_generator import WatermarkCVAE, LearneableWatermark
-from harvim.realnvp import RealNVP
+from harvim.realnvp_2 import RealNVP, create_harvim_realnvp
 from harvim.utils import create_differentiable_mask
 
 # GLOBAL IMAGE_SIZE CONFIGURATION
@@ -33,7 +33,7 @@ def process_images_in_directory(input_dir, output_dir):
         print("CVAE weights not found. Using untrained CVAE.")
         
     print("Initializing Real-NVP prior...")
-    prior = RealNVP(num_channels=3, num_layers=4).to(device)
+    prior = create_harvim_realnvp(image_size=IMAGE_SIZE if "IMAGE_SIZE" in globals() else 64).to(device)
     
     # 2. Gather images
     valid_exts = ('.jpg', '.jpeg', '.png', '.bmp')

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import matplotlib.pyplot as plt
 class MLEObjective(nn.Module):
     def __init__(self, prior_model: nn.Module, sigma_sq: float):
         """
@@ -22,8 +22,11 @@ class MLEObjective(nn.Module):
         residual = y - A_m * x
         # log p_e = - ||residual||^2 / (2 * sigma^2) + const
         log_pe = -torch.sum(residual ** 2) / (2 * self.sigma_sq)
-        
+        img = (A_m*x).squeeze(0).cpu().detach().numpy().transpose(1,2,0)
+        img = img - img.min()
+        img = img / img.max()
+        plt.imsave("watermarked_image.png", img, cmap='gray')
         # Prior term: \lambda * log p_G(x)
-        log_pG = self.prior(x)
+        log_pG = self.prior(x)[0]
         
         return log_pe + lam * log_pG
