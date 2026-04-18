@@ -1,2 +1,2 @@
 python -m scripts.1_run_harvim
-python -m StegaStamp-pytorch.stegastamp.encode_image   --model ./StegaStamp-pytorch/asset/best.pth   --image ./data/harvim_dog.png  --save_dir ./StegaStamp-pytorch/outputs/demo   --secret "sheru"   --height 400 --width 400 --secret_size 100
+python -m StegaStamp-pytorch.stegastamp.encode_image   --model ./StegaStamp-pytorch/asset/best.pth   --image ./data/watermarked_output.png  --save_dir ./StegaStamp-pytorch/outputs/demo   --secret "sheru"   --height 400 --width 400 --secret_size 100
