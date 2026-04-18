@@ -18,37 +18,40 @@ class FlowR:
                          steps: int = 1000, 
                          lr: float = 0.01) -> torch.Tensor:
         """
-        Removes the watermark by optimizing a randomly initialized image x 
-        to maximize the posterior probability log p(x | y; \lambda).
+        Removes the watermark by optimizing x to reconstruct the original image.
+        Uses MAP (Maximum A Posteriori) estimation with the trained generative prior.
         
         Args:
-            y: The watermarked observation (x_T * A_m + noise)
-            A_m: The ground truth location of watermarks (binary or near-binary mask)
-            lam: Hyperparameter controlling the weight of the prior G
+            y: The watermarked observation
+            A_m: The watermark location mask (1 = watermark region, 0 = original image region)
+            lam: Hyperparameter controlling the weight of the prior vs data likelihood
             steps: Number of gradient descent steps
             lr: Learning rate
             
         Returns:
-            The reconstructed image without the watermark.
+            The reconstructed image with watermark removed.
         """
-        # "Flow-R uses the same flow-based model G to solve the inpainting task 
-        # with random initialized x [48]"
-        x_opt = torch.randn_like(y, requires_grad=True)
+        # Initialize x randomly in valid image space
+        x_opt = torch.rand_like(y, requires_grad=True)
         optimizer = Adam([x_opt], lr=lr)
 
         for step in range(steps):
             optimizer.zero_grad()
             
-            # log_p computes log p_e(y - A_m * x) + \lambda log p_G(x)
-            log_p = self.objective_fn(x_opt, y, A_m, lam)
+            # log_p computes: log p_e(y - x in original regions) + lambda * log p_G(x)
+            # We only penalize difference in original regions, allowing watermark region to be shaped by prior
+            log_p = self.objective_fn(x_opt, y, 1 - A_m, lam)
             
             # We want to MAXIMIZE the log posterior, so we minimize its negative
             loss = -log_p
             loss.backward()
             optimizer.step()
             
-            # Optional: clamp x to valid image range during optimization
+            # Clamp x to valid image range [0, 1]
             with torch.no_grad():
                 x_opt.clamp_(0, 1)
+            
+            if (step + 1) % 100 == 0:
+                print(f"  Step {step + 1}/{steps}, Loss: {loss.item():.4f}")
 
         return x_opt.detach()

@@ -233,7 +233,7 @@ class CheckerboardAdditiveCoupling(AbstractCoupling):
         """
         super(CheckerboardAdditiveCoupling, self).__init__(mask_config, hps)
         
-        self.mask = self.build_mask(size, config=mask_config).cuda()
+        self.register_buffer("mask", self.build_mask(size, config=mask_config))
         self.in_bn = nn.BatchNorm2d(in_out_dim)
         self.block = nn.Sequential(
             nn.ReLU(),
@@ -292,7 +292,7 @@ class CheckerboardAffineCoupling(AbstractCoupling):
         """
         super(CheckerboardAffineCoupling, self).__init__(mask_config, hps)
 
-        self.mask = self.build_mask(size, config=mask_config).cuda()
+        self.register_buffer("mask", self.build_mask(size, config=mask_config))
         self.scale = nn.Parameter(torch.zeros(1), requires_grad=True)
         self.scale_shift = nn.Parameter(torch.zeros(1), requires_grad=True)
         self.in_bn = nn.BatchNorm2d(in_out_dim)
@@ -559,7 +559,7 @@ class RealNVP(nn.Module):
             # SCALE 1: 3 x 32 x 32
             self.s1_ckbd = self.checkerboard_combo(chan, dim, size, hps)
             self.s1_chan = self.channelwise_combo(chan*4, dim, hps)
-            self.order_matrix_1 = self.order_matrix(chan).cuda()
+            self.register_buffer("order_matrix_1", self.order_matrix(chan))
             chan *= 2
             size //= 2
 
@@ -571,7 +571,7 @@ class RealNVP(nn.Module):
             # SCALE 1: 3 x 32(64) x 32(64)
             self.s1_ckbd = self.checkerboard_combo(chan, dim, size, hps)
             self.s1_chan = self.channelwise_combo(chan*4, dim*2, hps)
-            self.order_matrix_1 = self.order_matrix(chan).cuda()
+            self.register_buffer("order_matrix_1", self.order_matrix(chan))
             chan *= 2
             size //= 2
             dim *= 2
@@ -579,7 +579,7 @@ class RealNVP(nn.Module):
             # SCALE 2: 6 x 16(32) x 16(32)
             self.s2_ckbd = self.checkerboard_combo(chan, dim, size, hps)
             self.s2_chan = self.channelwise_combo(chan*4, dim*2, hps)
-            self.order_matrix_2 = self.order_matrix(chan).cuda()
+            self.register_buffer("order_matrix_2", self.order_matrix(chan))
             chan *= 2
             size //= 2
             dim *= 2
@@ -587,7 +587,7 @@ class RealNVP(nn.Module):
             # SCALE 3: 12 x 8(16) x 8(16)
             self.s3_ckbd = self.checkerboard_combo(chan, dim, size, hps)
             self.s3_chan = self.channelwise_combo(chan*4, dim*2, hps)
-            self.order_matrix_3 = self.order_matrix(chan).cuda()
+            self.register_buffer("order_matrix_3", self.order_matrix(chan))
             chan *= 2
             size //= 2
             dim *= 2
@@ -600,7 +600,7 @@ class RealNVP(nn.Module):
                 # SCALE 4: 24 x 8 x 8
                 self.s4_ckbd = self.checkerboard_combo(chan, dim, size, hps)
                 self.s4_chan = self.channelwise_combo(chan*4, dim*2, hps)
-                self.order_matrix_4 = self.order_matrix(chan).cuda()
+                self.register_buffer("order_matrix_4", self.order_matrix(chan))
                 chan *= 2
                 size //= 2
                 dim *= 2
@@ -631,7 +631,7 @@ class RealNVP(nn.Module):
                 CheckerboardCoupling(in_out_dim, mid_dim, size, 1., hps), 
                 CheckerboardCoupling(in_out_dim, mid_dim, size, 0., hps),
                 CheckerboardCoupling(in_out_dim, mid_dim, size, 1., hps)])
-        
+             
     def channelwise_combo(self, in_out_dim, mid_dim, hps):
         """Construct a combination of channelwise coupling layers.
 
@@ -945,11 +945,18 @@ class DummyDataInfo:
         self.channel = channel
         self.name = name
 
-class DummyPrior(nn.Module):
+class StandardNormal:
+    """Standard normal prior distribution."""
+    def __init__(self):
+        pass
+    
     def log_prob(self, z):
-        return -0.5 * (z ** 2 + np.log(2 * np.pi))
-    def sample(self, size):
-        return torch.randn(size)
+        """Log probability of standard normal."""
+        return -0.5 * z ** 2 - 0.5 * np.log(2.0 * np.pi)
+    
+    def sample(self, shape):
+        """Sample from standard normal."""
+        return torch.randn(shape)
 
 class DummyHPS:
     def __init__(self):
@@ -963,6 +970,6 @@ class DummyHPS:
 
 def create_harvim_realnvp(image_size=64, in_channels=3):
     datainfo = DummyDataInfo(size=image_size, channel=in_channels, name='celeba' if image_size == 64 else 'imnet32')
-    prior = DummyPrior()
+    prior = StandardNormal()
     hps = DummyHPS()
     return RealNVP(datainfo, prior, hps)

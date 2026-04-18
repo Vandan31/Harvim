@@ -24,7 +24,7 @@ class MLEObjective(nn.Module):
         log_pe = -torch.sum(residual ** 2) / (2 * self.sigma_sq)
         img = (A_m*x).squeeze(0).cpu().detach().numpy().transpose(1,2,0)
         img = img - img.min()
-        img = img / img.max()
+        img = img / max(1,img.max())
         plt.imsave("watermarked_image.png", img, cmap='gray')
         # Prior term: \lambda * log p_G(x)
         log_pG = self.prior(x)[0]

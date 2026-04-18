@@ -20,7 +20,9 @@ class PaddedMNIST(Dataset):
 
     def __getitem__(self, idx):
         img, label = self.mnist[idx]
-        # MNIST is 28x28, we need to pad it to image_size (e.g., IMAGE_SIZExIMAGE_SIZE)
+        # Interpolate MNIST from 28x28 to 128x64
+        img = F.interpolate(img.unsqueeze(0), size=(64, 64), mode='bilinear', align_corners=False).squeeze(0)
+        # Now we need to pad it to image_size (e.g., IMAGE_SIZExIMAGE_SIZE)
         # Randomly choose padding left and bottom
         max_pad_h = self.image_size[0] - img.shape[1]
         max_pad_w = self.image_size[1] - img.shape[2]
@@ -63,6 +65,11 @@ def train_cvae():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model = WatermarkCVAE(condition_dim=condition_dim, latent_dim=latent_dim, image_size=(IMAGE_SIZE, IMAGE_SIZE)).to(device)
+    # load checkpoint if exists
+    checkpoint_path = f"checkpoints/watermark_cvae_{IMAGE_SIZE}.pth"
+    if os.path.exists(checkpoint_path):
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+        print(f"✓ Loaded existing model from {checkpoint_path}")
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     
     def loss_function(recon_x, x, mu, logvar):

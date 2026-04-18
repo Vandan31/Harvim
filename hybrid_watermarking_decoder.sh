@@ -1,0 +1,1 @@
+python -m StegaStamp-pytorch.stegastamp.decode_image --model ./StegaStamp-pytorch/asset/best.pth  --image ./StegaStamp-pytorch/outputs/demo/watermarked_output_hidden.png --height 400 --width 400 --secret_size 100
