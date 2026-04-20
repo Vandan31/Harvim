@@ -9,9 +9,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from scripts.run_harvim import run_harvim_on_image
 
-# -------------------------------
-# VISIBLE
-# -------------------------------
+
 def add_visible_watermark(image, text):
     overlay = image.copy()
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -30,9 +28,7 @@ def add_visible_watermark(image, text):
 def ecc_encode(text, repeat=3):
     return "|".join([text]*repeat)
 
-# -------------------------------
-# STEGASTAMP ENCODE
-# -------------------------------
+
 def run_stegastamp(image_path, secret):
     base_dir = os.path.dirname(os.path.dirname(__file__))
 
@@ -66,9 +62,7 @@ def run_stegastamp(image_path, secret):
     base = os.path.splitext(os.path.basename(image_path))[0]
     return os.path.join(output_dir, base + "_hidden.png")
 
-# -------------------------------
-# DECODER (FIXED)
-# -------------------------------
+
 def run_decoder(image_path):
     base_dir = os.path.dirname(os.path.dirname(__file__))
     model_path = os.path.join(base_dir, "StegaStamp-pytorch", "asset", "best.pth")
@@ -124,9 +118,7 @@ def run_decoder(image_path):
 
     return final
 
-# -------------------------------
-# ATTACKS
-# -------------------------------
+
 def jpeg_attack(img, quality):
     _, enc = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
     return cv2.imdecode(enc, 1)
@@ -151,9 +143,7 @@ def whatsapp_attack(img):
     img = cv2.resize(img, (400, 400))
     return img
 
-# -------------------------------
-# DECODE VALIDATION
-# -------------------------------
+
 def decode_success(image_path, original_secret):
     try:
         decoded = run_decoder(image_path)
@@ -161,9 +151,7 @@ def decode_success(image_path, original_secret):
     except:
         return False, ""
 
-# -------------------------------
-# BENCHMARK
-# -------------------------------
+
 def run_benchmark(image, secret, base_dir):
     results = []
 
@@ -198,17 +186,13 @@ def run_benchmark(image, secret, base_dir):
     score = (success_count / len(attacks)) * 100
     return results, round(score, 2)
 
-# -------------------------------
-# UI
-# -------------------------------
+
 st.set_page_config(page_title="Watermark App", layout="wide")
 st.title("🛡️ Watermarking App")
 
 tab1, tab2 = st.tabs(["🔐 Watermark", "🔍 Decode"])
 
-# -------------------------------
-# TAB 1
-# -------------------------------
+
 with tab1:
     file = st.file_uploader("Upload Image")
     mode = st.selectbox("Mode", ["Visible", "Invisible", "Hybrid"])
@@ -241,9 +225,7 @@ with tab1:
             _, buf = cv2.imencode(".png", result)
             st.download_button("Download", buf.tobytes(), "output.png")
 
-# -------------------------------
-# TAB 2
-# -------------------------------
+
 with tab2:
     file = st.file_uploader("Upload Image", key="decode")
 
