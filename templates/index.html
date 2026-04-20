@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Image Decoder & Watermarker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <header class="py-2 py-md-3 bg-dark text-white sticky-top">
+            <div class="container-fluid px-2">
+                <h1 class="h6 h-md-5 mb-0"><i class="fas fa-image"></i> Decoder & Watermark</h1>
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">Mobile-friendly decoder & watermarking</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="py-2 pb-6">
+            <div class="container-fluid px-2">
+                <!-- Status Section -->
+                <div class="mb-2">
+                    <div class="alert alert-info alert-sm py-1 px-2" id="statusAlert" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-spinner fa-spin"></i> Initializing...
+                    </div>
+                </div>
+
+                <!-- Tabs for Mobile -->
+                <ul class="nav nav-tabs mb-2 nav-fill" role="tablist" style="font-size: 0.85rem;">
+                    <li class="nav-item">
+                        <button class="nav-link active py-2" id="decode-tab" data-bs-toggle="tab" data-bs-target="#decode-content">
+                            <i class="fas fa-eye"></i> <span class="d-none d-sm-inline">Decode</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2" id="watermark-tab" data-bs-toggle="tab" data-bs-target="#watermark-content">
+                            <i class="fas fa-water"></i> <span class="d-none d-sm-inline">Mark</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Decode Tab -->
+                    <div class="tab-pane fade show active" id="decode-content">
+                        <div class="row mb-2 g-1">
+                            <div class="col-12 col-lg-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-primary text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-upload"></i> Upload Image
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="upload-area border-2 border-dashed p-3 text-center" id="uploadArea" style="cursor: pointer; border-radius: 8px; background: #f8f9fa;">
+                                            <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem;"></i>
+                                            <p class="small mb-0" style="font-size: 0.8rem;">Drag or tap to upload</p>
+                                            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                                        </div>
+                                        <button class="btn btn-success w-100 mt-2 btn-sm" id="selectImageBtn" style="font-size: 0.85rem;">
+                                            <i class="fas fa-folder-open"></i> Browse
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-info text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-camera"></i> Camera
+                                    </div>
+                                    <div class="card-body p-2 text-center">
+                                        <video id="webcamVideo" class="w-100" style="max-height: 250px; border-radius: 5px; background: #000; display: none;" autoplay playsinline muted></video>
+                                        <div id="webcamNotSupported" class="alert alert-warning py-1 px-2 mb-0" style="font-size: 0.8rem;">
+                                            Camera not available
+                                        </div>
+                                        <div id="webcamControls" style="display: none;">
+                                            <button class="btn btn-primary btn-sm w-100 mb-1" id="startWebcamBtn" style="font-size: 0.8rem;">
+                                                <i class="fas fa-camera"></i> Start
+                                            </button>
+                                            <button class="btn btn-danger btn-sm w-100 mb-1" id="stopWebcamBtn" style="display: none; font-size: 0.8rem;">
+                                                <i class="fas fa-stop"></i> Stop
+                                            </button>
+                                            <button class="btn btn-warning btn-sm w-100" id="captureWebcamBtn" style="display: none; font-size: 0.8rem;">
+                                                <i class="fas fa-camera-retro"></i> Capture
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2 g-1">
+                            <div class="col-12 col-lg-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-secondary text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-image"></i> Preview
+                                    </div>
+                                    <div class="card-body text-center p-2">
+                                        <img id="previewImage" src="" alt="Preview" class="img-fluid" style="max-height: 250px; display: none; border-radius: 5px;">
+                                        <div id="noImagePlaceholder" class="text-muted" style="padding: 30px 10px; font-size: 0.85rem;">
+                                            <i class="fas fa-image" style="font-size: 2rem; opacity: 0.3;"></i>
+                                            <p class="small mt-2">No image</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-success text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-check-circle"></i> Results
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="mb-2">
+                                            <label class="small mb-1" style="font-size: 0.8rem;"><strong>Confidence</strong></label>
+                                            <div class="progress" style="height: 18px;">
+                                                <div id="confidenceBar" class="progress-bar" style="width: 0%;">
+                                                    <span id="confidenceText" class="small" style="font-size: 0.7rem;">0%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label class="small mb-1" style="font-size: 0.8rem;"><strong>Message</strong></label>
+                                        <div id="resultBox" class="p-2 bg-light rounded" style="min-height: 50px; font-size: 0.8rem; word-break: break-word; border: 1px solid #ddd; max-height: 120px; overflow-y: auto;">
+                                            <em class="text-muted">Waiting...</em>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Row -->
+                        <div class="row mb-2 g-1">
+                            <div class="col-4">
+                                <div class="card border-0 text-center shadow-sm">
+                                    <div class="card-body p-2">
+                                        <div class="h6 mb-0" id="totalDecoded" style="font-size: 0.9rem;">0</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">Decoded</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="card border-0 text-center shadow-sm">
+                                    <div class="card-body p-2">
+                                        <div class="h6 mb-0" id="totalFailed" style="font-size: 0.9rem;">0</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">Failed</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="card border-0 text-center shadow-sm">
+                                    <div class="card-body p-2">
+                                        <div class="h6 mb-0" id="avgConfidence" style="font-size: 0.9rem;">0%</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">Avg Score</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Messages -->
+                        <div id="statusMessages" class="mb-2" style="font-size: 0.85rem;">
+                            <div id="successMessage" class="alert alert-success alert-sm py-1 px-2 alert-dismissible fade show" style="display: none; font-size: 0.8rem;">
+                                <i class="fas fa-check"></i> <span id="successText"></span>
+                            </div>
+                            <div id="errorMessage" class="alert alert-danger alert-sm py-1 px-2 alert-dismissible fade show" style="display: none; font-size: 0.8rem;">
+                                <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+                            </div>
+                        </div>
+
+                        <!-- History -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-secondary text-white d-flex justify-content-between py-2" style="font-size: 0.9rem;">
+                                <span><i class="fas fa-list"></i> History</span>
+                                <button class="btn btn-sm btn-light py-0 px-2" id="clearLogBtn" style="font-size: 0.75rem;">Clear</button>
+                            </div>
+                            <div class="card-body p-2" style="max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
+                                <div id="logContainer">
+                                    <em class="text-muted">No history</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermark Tab -->
+                    <div class="tab-pane fade" id="watermark-content">
+                        <div class="row mb-2 g-1">
+                            <div class="col-12">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-warning text-dark py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-water"></i> Watermark Image
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="mb-2">
+                                            <label class="form-label small mb-1" style="font-size: 0.85rem;"><strong>Select Image</strong></label>
+                                            <div class="upload-area border-2 border-dashed p-2 text-center" id="watermarkUploadArea" style="cursor: pointer; border-radius: 8px; background: #f8f9fa; font-size: 0.85rem;">
+                                                <i class="fas fa-image" style="font-size: 1.2rem;"></i>
+                                                <p class="small mb-0">Upload image</p>
+                                                <input type="file" id="watermarkImageInput" accept="image/*" style="display: none;">
+                                            </div>
+                                            <button class="btn btn-primary btn-sm w-100 mt-2" id="selectWatermarkImageBtn" style="font-size: 0.8rem;">
+                                                <i class="fas fa-folder-open"></i> Choose
+                                            </button>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label class="form-label small mb-1" style="font-size: 0.85rem;"><strong>Secret Message (Optional)</strong></label>
+                                            <input type="text" class="form-control form-control-sm" id="secretMessage" placeholder="For invisible watermark" maxlength="50" value="" style="font-size: 0.85rem;">
+                                            <small class="text-muted" style="font-size: 0.7rem;">Max 50 chars. Leave empty for visible watermark only.</small>
+                                        </div>
+
+                                        <button class="btn btn-warning btn-sm w-100" id="watermarkBtn" style="font-size: 0.85rem;">
+                                            <i class="fas fa-water"></i> Apply Watermark
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2 g-1">
+                            <div class="col-12 col-md-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-secondary text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-image"></i> Original
+                                    </div>
+                                    <div class="card-body text-center p-2">
+                                        <img id="watermarkOriginalImage" src="" alt="Original" class="img-fluid" style="max-height: 200px; display: none; border-radius: 5px;">
+                                        <div id="watermarkOriginalPlaceholder" class="text-muted py-3" style="font-size: 0.8rem;">
+                                            <small>Upload to view</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-success text-white py-2" style="font-size: 0.9rem;">
+                                        <i class="fas fa-water"></i> Watermarked
+                                    </div>
+                                    <div class="card-body text-center p-2">
+                                        <img id="watermarkResultImage" src="" alt="Watermarked" class="img-fluid" style="max-height: 200px; display: none; border-radius: 5px;">
+                                        <div id="watermarkResultPlaceholder" class="text-muted py-3" style="font-size: 0.8rem;">
+                                            <small>Result here</small>
+                                        </div>
+                                        <button class="btn btn-success btn-sm w-100 d-none" id="downloadWatermarkBtn" style="font-size: 0.8rem;">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="watermarkMessages" style="font-size: 0.85rem;">
+                            <div id="watermarkSuccessMessage" class="alert alert-success alert-sm py-1 px-2 alert-dismissible fade show" style="display: none; font-size: 0.8rem;">
+                                <i class="fas fa-check"></i> <span id="watermarkSuccessText"></span>
+                            </div>
+                            <div id="watermarkErrorMessage" class="alert alert-danger alert-sm py-1 px-2 alert-dismissible fade show" style="display: none; font-size: 0.8rem;">
+                                <i class="fas fa-exclamation-circle"></i> <span id="watermarkErrorText"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Decoded Message</strong></label>
+                                    <div id="resultBox" class="p-3 bg-light rounded" 
+                                         style="min-height: 100px; word-break: break-word; border: 2px solid #dee2e6;">
+                                        <em class="text-muted">Waiting for decode...</em>
+                                    </div>
+                                </div>
+
+                                <!-- Status Messages -->
+                                <div id="statusMessages">
+                                    <div id="successMessage" class="alert alert-success" style="display: none;">
+                                        <i class="fas fa-check"></i> <span id="successText"></span>
+                                    </div>
+                                    <div id="errorMessage" class="alert alert-danger" style="display: none;">
+                                        <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+                                    </div>
+                                    <div id="warningMessage" class="alert alert-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i> <span id="warningText"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Statistics -->
+                                <div class="row text-center mt-3">
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <div class="stat-value" id="totalDecoded">0</div>
+                                            <div class="stat-label">Decoded</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <div class="stat-value" id="totalFailed">0</div>
+                                            <div class="stat-label">Failed</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <div class="stat-value" id="avgConfidence">0%</div>
+                                            <div class="stat-label">Avg Confidence</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Clear Button -->
+                                <button class="btn btn-secondary w-100 mt-3" id="clearBtn">
+                                    <i class="fas fa-trash"></i> Clear Results
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log Section -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-list"></i> Decode History</h5>
+                                    <button class="btn btn-sm btn-light" id="clearLogBtn">Clear Log</button>
+                                </div>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="logContainer">
+                                    <em class="text-muted">No decode history yet</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

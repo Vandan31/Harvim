@@ -1,0 +1,9 @@
+Flask==2.3.0
+flask-cors==4.0.0
+werkzeug==2.3.0
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow>=9.0.0
+bchlib==1.0.1
+scikit-image>=0.20.0
+numpy>=1.24.0
